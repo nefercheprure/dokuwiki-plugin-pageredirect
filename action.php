@@ -61,13 +61,15 @@ class action_plugin_pageredirect extends DokuWiki_Action_Plugin {
 			if (!headers_sent() && $this->getConf('show_note')) {
 				// remember to show note about being redirected from another page
 				session_start();
-				$_SESSION[DOKU_COOKIE]['redirect'] = $ID;
+				if (!isset($_SESSION[DOKU_COOKIE]['redirect']) || $redirect == 1)
+					$_SESSION[DOKU_COOKIE]['redirect'] = $ID;
 			}
 	
 			// redirect
+			resolve_pageid(getNS($ID),$page,$exists);
 			header("Location: ".wl($page, Array('redirect' => $redirect), TRUE, '&')); 
 			exit(); 
-		} 
+		}
 	}
 
 	function handle_pageredirect_note(&$event, $param) {
@@ -79,7 +81,10 @@ class action_plugin_pageredirect extends DokuWiki_Action_Plugin {
 				if (isset($_SESSION[DOKU_COOKIE]['redirect']) && $_SESSION[DOKU_COOKIE]['redirect'] != '') {
 					// we were redirected from another page, show it!
 					$page = $_SESSION[DOKU_COOKIE]['redirect'];
-					echo '<div class="noteredirect">'.sprintf($this->getLang('redirected_from'), '<a href="'.wl(':'.$page, Array('redirect' => 'no'), TRUE, '&').'" class="wikilink1" title="'.$page.'">'.$page.'</a>').'</div>';
+					global $conf;
+					//$pagetitle = $conf['useheading'] ? p_get_first_heading($page) : $page;
+					//echo '<div class="noteredirect">'.sprintf($this->getLang('redirected_from'), '<a href="'.wl(':'.$page, Array('redirect' => 'no'), TRUE, '&').'" class="wikilink1" title="'.$page.'">'.$pagetitle.'</a>').'</div>';
+					echo '<div class="noteredirect">'.sprintf($this->getLang('redirected_from'), html_wikilink($page.'?redirect=no')).'</div>';
 					unset($_SESSION[DOKU_COOKIE]['redirect']);
 					
 					return true;
@@ -91,7 +96,8 @@ class action_plugin_pageredirect extends DokuWiki_Action_Plugin {
 	}
 
 	function handle_pageredirect_metadata(&$event, $param) { 
-		unset($event->data->meta['relation']['isreplacedby']); 
+		if (isset($event->data->meta['relation']['isreplacedby']))
+			unset($event->data->meta['relation']['isreplacedby']); 
 	}
 
 }
